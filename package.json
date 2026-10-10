@@ -1,0 +1,26 @@
+{
+  "name": "elan-suivi",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && node build.mjs",
+    "preview": "node preview.mjs",
+    "check": "tsc --noEmit",
+    "test:rules": "node --test tests/firestore.rules.test.mjs"
+  },
+  "dependencies": {
+    "firebase": "^13.0.0",
+    "lucide-react": "^1.31.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "@types/node": "22.19.19",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "esbuild": "^0.25.0",
+    "typescript": "5.9.3"
+  }
+}

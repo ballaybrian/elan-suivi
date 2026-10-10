@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function verified() { return request.auth != null && request.auth.token.email_verified == true; }
+    function email() { return request.auth.token.email.lower(); }
+    function principal() { return verified() && email() == 'ballay.brian@gmail.com'; }
+    function admin() { return verified() && (principal() || exists(/databases/$(database)/documents/admins/$(email()))); }
+    function owner(uid) { return verified() && request.auth.uid == uid; }
+    function weightValid(w) { return w is number && w >= 20 && w <= 500; }
+    match /admins/{address} {
+      allow get: if verified() && (address == email() || admin());
+      allow list: if admin();
+      allow create, update: if admin() && request.resource.data.keys().hasOnly(['email'])
+        && request.resource.data.email == address && address == address.lower()
+        && address.size() <= 254 && address.matches('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$');
+      allow delete: if admin() && address != 'ballay.brian@gmail.com' && address != email();
+    }
+    match /packs/{packId} {
+      allow read: if verified();
+      allow create, update: if admin() && request.resource.data.keys().hasAll(['name','active'])
+        && request.resource.data.keys().hasOnly(['name','active'])
+        && request.resource.data.name is string && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 100 && request.resource.data.active in [0,1];
+      allow delete: if false;
+    }
+    function profileValid(uid) {
+      let p = request.resource.data;
+      return owner(uid) && p.keys().hasAll(['email','name','pack','initial','goal','started','consent'])
+        && p.keys().hasOnly(['email','name','pack','initial','goal','started','consent'])
+        && p.email == request.auth.token.email && p.name is string && p.name.size() > 0 && p.name.size() <= 100
+        && p.pack is string && weightValid(p.initial) && weightValid(p.goal)
+        && p.started is string && p.started.matches('^\\d{4}-\\d{2}-\\d{2}$') && p.consent == true
+        && get(/databases/$(database)/documents/packs/$(p.pack)).data.active == 1;
+    }
+    match /profiles/{uid} {
+      allow read: if owner(uid) || admin();
+      allow create: if profileValid(uid);
+      allow update: if profileValid(uid) && request.resource.data.started == resource.data.started;
+      allow delete: if false;
+    }
+    function measurementValid(id) {
+      let w = request.resource.data;
+      return verified() && w.keys().hasAll(['user','week','weight','note'])
+        && w.keys().hasOnly(['user','week','weight','note']) && w.user == request.auth.uid
+        && w.week is string && w.week.matches('^\\d{4}-\\d{2}-\\d{2}$')
+        && id == request.auth.uid + '_' + w.week && weightValid(w.weight)
+        && w.note is string && w.note.size() <= 500
+        && exists(/databases/$(database)/documents/profiles/$(request.auth.uid));
+    }
+    match /weights/{id} {
+      allow read: if verified() && (resource.data.user == request.auth.uid || admin());
+      allow create: if measurementValid(id);
+      allow update: if measurementValid(id) && resource.data.user == request.auth.uid
+        && request.resource.data.week == resource.data.week;
+      allow delete: if verified() && resource.data.user == request.auth.uid;
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}
