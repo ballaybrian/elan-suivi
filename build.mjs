@@ -1,8 +1,12 @@
 import {build} from 'esbuild';
-import {mkdirSync,copyFileSync,writeFileSync} from 'node:fs';
+import {mkdirSync,copyFileSync,writeFileSync,readFileSync,renameSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 mkdirSync('dist/assets',{recursive:true});
 await build({entryPoints:['src/main.tsx'],bundle:true,outfile:'dist/assets/app.js',platform:'browser',format:'esm',minify:true,jsx:'automatic',preserveSymlinks:true,define:{'process.env.NODE_ENV':'"production"'}});
+const hash=createHash('sha256').update(readFileSync('dist/assets/app.js')).update(readFileSync('dist/assets/app.css')).digest('hex').slice(0,12);
+renameSync('dist/assets/app.js',`dist/assets/app-${hash}.js`);
+renameSync('dist/assets/app.css',`dist/assets/app-${hash}.css`);
 copyFileSync('public/firebase-config.json','dist/firebase-config.json');
-writeFileSync('dist/index.html','<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Votre suivi du poids, semaine après semaine"><title>BodyHappyHarmonie — Suivi clientes</title><link rel="stylesheet" href="./assets/app.css"></head><body><div id="root"></div><script type="module" src="./assets/app.js"></script></body></html>');
+writeFileSync('dist/index.html','<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Votre suivi du poids, semaine après semaine"><title>BodyHappyHarmonie — Suivi clientes</title><link rel="stylesheet" href="./assets/app-'+hash+'.css"></head><body><div id="root"></div><script type="module" src="./assets/app-'+hash+'.js"></script></body></html>');
 writeFileSync('dist/.nojekyll','');
 console.log('Application construite dans dist/');
