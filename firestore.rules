@@ -26,8 +26,11 @@ service cloud.firestore {
     function profileValid(uid) {
       let p = request.resource.data;
       return owner(uid) && p.keys().hasAll(['email','name','pack','initial','goal','started','consent'])
-        && p.keys().hasOnly(['email','name','pack','initial','goal','started','consent'])
+        && p.keys().hasOnly(['email','name','pack','initial','goal','started','consent','phone','contact','age','personalGoal','food','activity','treatment','allergies'])
         && p.email == request.auth.token.email && p.name is string && p.name.size() > 0 && p.name.size() <= 100
+        && optionalText(p,'phone',40) && optionalText(p,'contact',500) && optionalNumber(p,'age',18,120)
+        && optionalText(p,'personalGoal',1000) && optionalText(p,'food',1000) && optionalText(p,'activity',1000)
+        && optionalText(p,'treatment',1000) && optionalText(p,'allergies',1000)
         && p.pack is string && weightValid(p.initial) && weightValid(p.goal)
         && p.started is string && p.started.matches('^\\d{4}-\\d{2}-\\d{2}$') && p.consent == true
         && get(/databases/$(database)/documents/packs/$(p.pack)).data.active == 1;
@@ -41,10 +44,14 @@ service cloud.firestore {
     function measurementValid(id) {
       let w = request.resource.data;
       return verified() && w.keys().hasAll(['user','week','weight','note'])
-        && w.keys().hasOnly(['user','week','weight','note']) && w.user == request.auth.uid
+        && w.keys().hasOnly(['user','week','weight','note','energy','waist','hips','chest','thigh','cycle','updatedAt']) && w.user == request.auth.uid
         && w.week is string && w.week.matches('^\\d{4}-\\d{2}-\\d{2}$')
         && id == request.auth.uid + '_' + w.week && weightValid(w.weight)
         && w.note is string && w.note.size() <= 500
+        && optionalNumber(w,'energy',1,5) && optionalNumber(w,'waist',10,300) && optionalNumber(w,'hips',10,300)
+        && optionalNumber(w,'chest',10,300) && optionalNumber(w,'thigh',10,300)
+        && (!('cycle' in w) || w.cycle in ['Non renseigné','Règles','Phase folliculaire','Ovulation','Phase lutéale','Cycle irrégulier','Ménopause','Non concernée'])
+        && (!('updatedAt' in w) || w.updatedAt == request.time)
         && exists(/databases/$(database)/documents/profiles/$(request.auth.uid));
     }
     match /weights/{id} {
@@ -53,6 +60,49 @@ service cloud.firestore {
       allow update: if measurementValid(id) && resource.data.user == request.auth.uid
         && request.resource.data.week == resource.data.week;
       allow delete: if verified() && resource.data.user == request.auth.uid;
+    }
+    function optionalText(data,key,max) { return !(key in data) || (data[key] is string && data[key].size() <= max); }
+    function optionalNumber(data,key,min,max) { return !(key in data) || data[key] == null || (data[key] is number && data[key] >= min && data[key] <= max); }
+    match /settings/programme {
+      allow read: if verified();
+      allow create, update: if admin() && request.resource.data.keys().hasAll(['title','description','url'])
+        && request.resource.data.keys().hasOnly(['title','description','url'])
+        && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 100
+        && request.resource.data.description is string && request.resource.data.description.size() <= 3000
+        && request.resource.data.url is string && request.resource.data.url.size() <= 2000
+        && (request.resource.data.url == '' || request.resource.data.url.matches('^https://[^\\s]+$'));
+    }
+    match /messages/{id} {
+      allow read: if verified() && (admin() || resource.data.user == request.auth.uid);
+      allow create: if verified() && request.resource.data.keys().hasAll(['user','sender','role','text','createdAt'])
+        && request.resource.data.keys().hasOnly(['user','sender','role','text','createdAt'])
+        && request.resource.data.user is string && request.resource.data.sender == request.auth.uid
+        && request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 2000
+        && request.resource.data.createdAt == request.time
+        && exists(/databases/$(database)/documents/profiles/$(request.resource.data.user))
+        && ((admin() && request.resource.data.role == 'admin') || (!admin() && request.resource.data.user == request.auth.uid && request.resource.data.role == 'client'));
+      allow update, delete: if false;
+    }
+    match /requests/{uid} {
+      allow read: if owner(uid) || admin();
+      function validRequest() { let r=request.resource.data; return owner(uid)
+        && r.keys().hasAll(['user','text','status','createdAt']) && r.keys().hasOnly(['user','text','status','createdAt'])
+        && r.user == uid && r.text is string && r.text.size()>0 && r.text.size()<=1000
+        && r.status == 'open' && r.createdAt == request.time
+        && exists(/databases/$(database)/documents/profiles/$(uid)); }
+      allow create: if validRequest();
+      allow update: if (validRequest() && resource.data.status == 'resolved')
+        || (admin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) && request.resource.data.status == 'resolved');
+    }
+    match /preferences/{uid} {
+      allow read: if owner(uid);
+      allow create: if owner(uid) && request.resource.data.keys().hasOnly(['emailEnabled','seenAt'])
+        && (!('emailEnabled' in request.resource.data) || request.resource.data.emailEnabled is bool)
+        && (!('seenAt' in request.resource.data) || request.resource.data.seenAt == request.time);
+      allow update: if owner(uid) && request.resource.data.keys().hasOnly(['emailEnabled','seenAt'])
+        && (!('emailEnabled' in request.resource.data) || request.resource.data.emailEnabled is bool)
+        && (!('seenAt' in request.resource.data) || request.resource.data.seenAt is timestamp)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['seenAt']) || request.resource.data.seenAt == request.time);
     }
     match /{document=**} { allow read, write: if false; }
   }
