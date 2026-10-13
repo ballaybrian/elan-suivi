@@ -1,0 +1,9 @@
+export const cycles=['Non renseigné','Règles','Phase folliculaire','Ovulation','Phase lutéale','Cycle irrégulier','Ménopause','Non concernée'];
+export function monthlyRows(rows:any[]){const months=new Map<string,any>();for(const row of rows)months.set(row.week.slice(0,7),row);return [...months.values()];}
+export const stamp=(value:any)=>value?.toMillis?.()||0;
+export function alertsFor(data:any){const admin=data.isAdmin,uid=data.user.userId;const seen=stamp(data.preferences?.seenAt);const result:any[]=[];
+for(const w of data.weights||[])if(admin&&w.user!==uid&&stamp(w.updatedAt)>seen)result.push({id:'w'+w.id,title:'Nouveau bilan',text:(data.profiles.find((p:any)=>p.id===w.user)?.name||'Une cliente')+' a enregistré son bilan.',time:stamp(w.updatedAt),user:w.user,kind:'progress'});
+for(const m of data.messages||[])if(m.sender!==uid&&stamp(m.createdAt)>seen)result.push({id:'m'+m.id,title:'Nouveau message',text:admin?(data.profiles.find((p:any)=>p.id===m.user)?.name||'Une cliente')+' vous a écrit.':'Votre accompagnement vous a envoyé un message.',time:stamp(m.createdAt),user:m.user,kind:'messages'});
+for(const r of data.requests||[])if(r.status==='open'&&((admin&&r.user!==uid)||r.user===uid))result.push({id:'r'+r.id,title:admin?'Demande d’accompagnement':'Votre demande est en attente',text:admin?(data.profiles.find((p:any)=>p.id===r.user)?.name||'Une cliente')+' attend votre retour.':'Votre accompagnement pourra vous répondre dans la messagerie.',time:stamp(r.createdAt),user:r.user,kind:'messages'});
+if(!admin){const own=data.profiles.find((p:any)=>p.id===uid);const latest=data.weights.filter((w:any)=>w.user===uid).at(-1);if(own&&(!latest||(Date.now()-Date.parse(latest.week)>7*86400000)))result.push({id:'reminder',title:'Votre bilan de la semaine',text:'Prenez un moment pour renseigner votre poids et votre énergie.',time:Date.now(),user:uid,kind:'progress'});}
+return result.sort((a,b)=>b.time-a.time);}

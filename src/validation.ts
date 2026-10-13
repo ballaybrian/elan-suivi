@@ -1,0 +1,3 @@
+export const optionalNumber=(value:any,min:number,max:number)=>{if(value===''||value==null)return null;const n=Number(value);if(!Number.isFinite(n)||n<min||n>max)throw new Error('Vérifiez les valeurs numériques du formulaire.');return n;};
+export const shortText=(value:any,max:number)=>{const s=String(value||'').trim();if(s.length>max)throw new Error('Un texte dépasse la longueur autorisée.');return s;};
+export function programmeUrl(value:any){const s=shortText(value,2000);if(!s)return '';try{const url=new URL(s);if(url.protocol!=='https:'||url.username||url.password)throw new Error();return url.href;}catch{throw new Error('Utilisez un lien HTTPS valide pour le programme.');}}
