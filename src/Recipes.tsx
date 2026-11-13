@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react';
 import {ArrowLeft,ChevronRight,ImagePlus,Pencil,Plus,Trash2,UtensilsCrossed,X} from 'lucide-react';
-import {createRecipe,updateRecipe,removeRecipe,getRecipeImageUrl, type Recipe,type RecipeCategory} from './recipes';
+import {createRecipe,updateRecipe,removeRecipe,getRecipeImageUrl, type Recipe,type RecipeCategory} from './recipeService';
 
 const categories: {id:RecipeCategory;label:string;emoji:string}[]=[
   {id:'breakfast',label:'Petit Déj',emoji:'🥐'},

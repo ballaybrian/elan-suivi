@@ -1,5 +1,5 @@
 import Recipes from './Recipes';
-import {listRecipes} from './recipes';
+import {listRecipes} from './recipeService';
 import {ProfileFields,BalanceFields,ProfileDetails,BalanceDetails,Programme,Messages,Notifications} from './JourneyPanels';
 import {alertsFor,monthlyRows} from './journey';
 import AuthForm from './AuthForm';
