@@ -1,0 +1,17 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function verified() { return request.auth != null && request.auth.token.email_verified == true; }
+    function email() { return request.auth.token.email.lower(); }
+    function admin() { return verified() && (email() == 'ballay.brian@gmail.com' || firestore.exists(/databases/(default)/documents/admins/$(email()))); }
+    match /recipes/{recipeId}/{filename} {
+      allow read: if verified();
+      allow create: if admin()
+        && filename.matches('^[a-zA-Z0-9-]+\\.(jpg|png|webp)$')
+        && request.resource.size > 0 && request.resource.size <= 8 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp)');
+      allow delete: if admin();
+      allow update: if false;
+    }
+  }
+}

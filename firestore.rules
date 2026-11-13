@@ -15,6 +15,20 @@ service cloud.firestore {
         && address.size() <= 254 && address.matches('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$');
       allow delete: if admin() && address != 'ballay.brian@gmail.com' && address != email();
     }
+    match /recipes/{recipeId} {
+      allow read: if verified();
+      function validRecipe() {
+        let r = request.resource.data;
+        return admin() && r.keys().hasAll(['title','category','imagePath','createdAt'])
+          && r.keys().hasOnly(['title','category','imagePath','createdAt'])
+          && r.title is string && r.title.size() > 0 && r.title.size() <= 100
+          && r.category in ['breakfast','meal','treat']
+          && r.imagePath is string && r.imagePath.matches('^recipes/' + recipeId + '/[a-zA-Z0-9-]+\\.(jpg|png|webp)$');
+      }
+      allow create: if validRecipe() && request.resource.data.createdAt == request.time;
+      allow update: if validRecipe() && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if admin();
+    }
     match /packs/{packId} {
       allow read: if verified();
       allow create, update: if admin() && request.resource.data.keys().hasAll(['name','active'])

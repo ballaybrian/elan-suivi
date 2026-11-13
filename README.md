@@ -72,3 +72,12 @@ Documentation officielle :
 - Création de Firestore : https://firebase.google.com/docs/firestore/quickstart
 - Hébergement GitHub Pages : https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site
 
+
+
+## Recettes (nouvelle fonctionnalité)
+
+Une rubrique **Recettes** est accessible aux clientes et aux administrateurs, avec les catégories **Petit Déj**, **Plat** et **Gourmandise**. Chaque recette affiche une miniature à gauche, un titre et une fiche image en plein format au clic. Les administrateurs peuvent ajouter, remplacer et supprimer les fiches images (JPG, PNG ou WebP, 8 Mo maximum) depuis le site. Les images peuvent être préparées dans ChatGPT puis téléchargées et importées dans l'espace administrateur.
+
+**Mise en service indispensable** : déployer `firestore.rules` et `storage.rules` sur le projet Firebase `elan-fd2cb` (par exemple depuis un terminal configuré avec Firebase CLI, `firebase deploy --only firestore:rules,storage`). Activer Firebase Storage dans la console Firebase si nécessaire (peut nécessiter l'activation de la facturation selon la configuration Firebase). La publication GitHub Pages seule ne déploie pas ces règles. Ne pas remplacer les règles existantes par des règles ouvertes. Après la mise en service, recharger l'application. Les recettes s'afficheront dès qu'un administrateur en ajoutera.
+
+**Note** : le mode aperçu permet de naviguer dans la rubrique mais ne permet pas d'ajouter des recettes. La publication du code et les déploiements Firebase ne sont pas effectués par ce ZIP.
